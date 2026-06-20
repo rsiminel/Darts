@@ -9,8 +9,29 @@ worst_aim = 100
 # Standard dartboard segment order, clockwise starting from "1".
 STANDARD_LAYOUT = [1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20]
 
+# Ring radii as fractions of the board radius, derived from real board geometry.
+# (Bull fractions are relative to the 340 mm board diameter; the double/triple
+# fractions are relative to the 170 mm board radius.)
+INNER_BULL_FRAC = 12.7 / 340   # inside this -> inner bull
+OUTER_BULL_FRAC = 32 / 340     # inside this -> outer bull
+DOUBLE_INNER_FRAC = 162 / 170  # beyond this -> double ring
+TRIPLE_OUTER_FRAC = 107 / 170  # triple ring outer edge
+TRIPLE_INNER_FRAC = 99 / 170   # triple ring inner edge
+
+INNER_BULL_SCORE = 50
+OUTER_BULL_SCORE = 25
+
 
 def create_points(grid_size, points):
+    """Render a dartboard score map.
+
+    Returns a ``(grid_size, grid_size)`` float array where each pixel holds the
+    score for a dart landing there: 0 off the board, ``INNER_BULL_SCORE`` /
+    ``OUTER_BULL_SCORE`` in the two bullseyes, and 1x/2x/3x a segment value in
+    the single/double/triple rings. ``points`` is the segment value for each
+    wedge, given clockwise (e.g. :data:`STANDARD_LAYOUT`); its length sets the
+    number of wedges.
+    """
     points = np.asarray(points)
     num_points = len(points)
     half = grid_size / 2
@@ -31,15 +52,15 @@ def create_points(grid_size, points):
     seg_value = points[seg_idx]
 
     # Ring multipliers (matched precedence: double, then triple, else single).
-    in_double = radius > (162/170 * half)**2
-    in_triple = (radius < (107/170 * half)**2) & (radius > (99/170 * half)**2)
+    in_double = radius > (DOUBLE_INNER_FRAC * half)**2
+    in_triple = (radius < (TRIPLE_OUTER_FRAC * half)**2) & (radius > (TRIPLE_INNER_FRAC * half)**2)
     grid = np.where(in_double, 2*seg_value, np.where(in_triple, 3*seg_value, seg_value))
 
     # Overlay centre regions and misses, lowest precedence first so the loop's
     # if/elif order (miss > inner bull > outer bull > segment) is reproduced.
-    grid = np.where(radius < (32/340 * half)**2, 25.0, grid)   # outer bull
-    grid = np.where(radius < (12.7/340 * half)**2, 50.0, grid)  # inner bull
-    grid = np.where(radius > half**2, 0.0, grid)                # missed the board
+    grid = np.where(radius < (OUTER_BULL_FRAC * half)**2, OUTER_BULL_SCORE, grid)
+    grid = np.where(radius < (INNER_BULL_FRAC * half)**2, INNER_BULL_SCORE, grid)
+    grid = np.where(radius > half**2, 0.0, grid)  # missed the board
     return grid.astype(float)
 
 

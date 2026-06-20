@@ -26,8 +26,7 @@ within each section by value-for-effort.
       figures to disk.
 
 ## Project hygiene
-- [ ] Add a docstring to `create_points`.
-- [ ] Extract magic geometry ratios (`12.7/340`, `32/340`, `162/170`, `107/170`,
-      `99/170`) into named constants.
+- [x] Add a docstring to `create_points`.
+- [x] Extract magic geometry ratios into named constants (`*_FRAC`, `*_BULL_SCORE`).
 - [x] Add sanity tests (known pixel coordinate → expected score). See `tests/`.
 - [ ] Add an `assets/` folder with a rendered output image, embedded in the README.
