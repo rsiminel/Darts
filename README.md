@@ -45,6 +45,21 @@ pip install numpy scipy matplotlib
 python Darts.py
 ```
 
+Running the file executes both demos (`demo_isotropic` and `demo_anisotropic`); you
+can also import `create_points` and the demo functions from other code or a notebook
+without triggering the plots.
+
+## Tests
+
+```bash
+pip install pytest
+pytest
+```
+
+The suite in `tests/` characterizes the scoring map (bullseyes, misses, and
+single/double/triple multipliers at known pixels). One test is an expected failure
+(`xfail`) documenting the inverted bullseye scores tracked in [TODO.md](TODO.md).
+
 ## Notes
 
 - Scores are simplified point values, not the official 50/25 bull scoring, but the board

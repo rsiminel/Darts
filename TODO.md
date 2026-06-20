@@ -31,5 +31,5 @@ within each section by value-for-effort.
 - [ ] Add a docstring to `create_points`.
 - [ ] Extract magic geometry ratios (`12.7/340`, `32/340`, `162/170`, `107/170`,
       `99/170`) into named constants.
-- [ ] Add sanity tests (known pixel coordinate → expected score).
+- [x] Add sanity tests (known pixel coordinate → expected score). See `tests/`.
 - [ ] Add an `assets/` folder with a rendered output image, embedded in the README.

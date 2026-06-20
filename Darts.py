@@ -6,6 +6,10 @@ import numpy as np
 grid_size = 200
 worst_aim = 100
 
+# Standard dartboard segment order, clockwise starting from "1".
+STANDARD_LAYOUT = [1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20]
+
+
 def create_points(grid_size, points):
     num_points = len(points)
     grid = np.zeros([grid_size] * 2)
@@ -42,32 +46,42 @@ def create_points(grid_size, points):
                     continue
     return grid
 
-# %%
-# points = create_points(grid_size, [1,5,2,3,4])
-# points = create_points(grid_size, [20,2,18,4,16,6,14,8,12,10,11,9,13,7,15,5,17,3,19,1])
-points = create_points(grid_size, [1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5,20])
-best_shot = np.zeros([grid_size] * 2)
-for sigma in range(worst_aim):
-    score = gaussian_filter(points, sigma=sigma, mode='constant', cval=0)
-    for coord in np.argwhere(score == np.amax(score)):
-        best_shot[coord[0], coord[1]] = sigma
-plt.imshow(points, cmap="gray")
-plt.imshow(best_shot, cmap="Wistia", alpha=1.0*(best_shot > 0))
-plt.show()
 
-# %%
-# points = create_points(grid_size, [20,2,18,4,16,6,14,8,12,10,11,9,13,7,15,5,17,3,19,1])
-points = create_points(grid_size, [1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5,20])
-best_shot = np.zeros([grid_size, grid_size, 4])
-for sigmaX in range(worst_aim):
-    for sigmaY in range(worst_aim):
-        score = gaussian_filter(points, sigma=[sigmaX, sigmaY], mode='constant', cval=0)
+#%%
+def demo_isotropic(layout=STANDARD_LAYOUT):
+    """Sweep a single (isotropic) aim spread; plot the optimal aim point per skill level."""
+    points = create_points(grid_size, layout)
+    best_shot = np.zeros([grid_size] * 2)
+    for sigma in range(worst_aim):
+        score = gaussian_filter(points, sigma=sigma, mode='constant', cval=0)
         for coord in np.argwhere(score == np.amax(score)):
-            best_shot[coord[0], coord[1], 0] = sigmaX / worst_aim
-            best_shot[coord[0], coord[1], 1] = sigmaY / worst_aim
-            best_shot[coord[0], coord[1], 2] = 1.0 - (sigmaX + sigmaY) / worst_aim
-            best_shot[coord[0], coord[1], 3] = 1.0
-plt.imshow(points, cmap="gray")
-plt.imshow(best_shot)
-plt.show()
-# %%
+            best_shot[coord[0], coord[1]] = sigma
+    plt.imshow(points, cmap="gray")
+    plt.imshow(best_shot, cmap="Wistia", alpha=1.0*(best_shot > 0))
+    plt.show()
+    return best_shot
+
+
+#%%
+def demo_anisotropic(layout=STANDARD_LAYOUT):
+    """Sweep independent horizontal/vertical aim spreads; plot optimal aim points (RGB-encoded)."""
+    points = create_points(grid_size, layout)
+    best_shot = np.zeros([grid_size, grid_size, 4])
+    for sigmaX in range(worst_aim):
+        for sigmaY in range(worst_aim):
+            score = gaussian_filter(points, sigma=[sigmaX, sigmaY], mode='constant', cval=0)
+            for coord in np.argwhere(score == np.amax(score)):
+                best_shot[coord[0], coord[1], 0] = sigmaX / worst_aim
+                best_shot[coord[0], coord[1], 1] = sigmaY / worst_aim
+                best_shot[coord[0], coord[1], 2] = 1.0 - (sigmaX + sigmaY) / worst_aim
+                best_shot[coord[0], coord[1], 3] = 1.0
+    plt.imshow(points, cmap="gray")
+    plt.imshow(best_shot)
+    plt.show()
+    return best_shot
+
+
+#%%
+if __name__ == "__main__":
+    demo_isotropic()
+    demo_anisotropic()
