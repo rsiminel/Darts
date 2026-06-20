@@ -8,8 +8,8 @@ Geometry reference (for grid_size=200, so center=(100,100) and the squared
 radius is `radius = (x-100)**2 + (y-100)**2`):
 
     miss          radius >  100**2          = 10000
-    small bull    radius <  (12.7/340*100)**2 ~  13.95   -> 25
-    outer bull    radius <  (32/340*100)**2   ~  88.58   -> 50
+    inner bull    radius <  (12.7/340*100)**2 ~  13.95   -> 50
+    outer bull    radius <  (32/340*100)**2   ~  88.58   -> 25
     triple ring   3391 < radius < 3962                   -> 3 * segment
     double ring   radius >  (162/170*100)**2  ~ 9080.9   -> 2 * segment
     single        anything else on the board            -> 1 * segment
@@ -156,3 +156,49 @@ def test_standard_layout_max_score_is_triple_twenty():
     # Highest possible: triple 20 = 60. Bull values (25, 50) are lower.
     assert grid.max() == 60
     assert grid[100, 100] == 50  # center is the inner bull
+
+
+# --- equivalence guard for the vectorized implementation ---------------------
+
+def _reference_create_points(grid_size, points):
+    """Slow, explicit reference: the original nested-loop scoring logic.
+
+    Kept verbatim so the (faster) production implementation can be checked for
+    pixel-identical output across grid sizes and layouts.
+    """
+    num_points = len(points)
+    grid = np.zeros([grid_size] * 2)
+    dividers = np.pi * (2 * np.arange(num_points + 1) / num_points - 1)
+    for x in range(grid_size):
+        for y in range(grid_size):
+            radius = (x - grid_size / 2) ** 2 + (y - grid_size / 2) ** 2
+            if radius > (grid_size / 2) ** 2:
+                grid[x, y] = 0
+                continue
+            elif radius < (12.7 / 340 * grid_size / 2) ** 2:
+                grid[x, y] = 50
+                continue
+            elif radius < (32 / 340 * grid_size / 2) ** 2:
+                grid[x, y] = 25
+                continue
+            else:
+                angle = np.arctan2((y - grid_size / 2), (x - grid_size / 2))
+            if angle == np.pi:
+                angle = -np.pi
+            for point in range(num_points):
+                if angle >= dividers[point] and angle < dividers[point + 1]:
+                    if radius > (162 / 170 * grid_size / 2) ** 2:
+                        grid[x, y] = 2 * points[point]
+                    elif radius < (107 / 170 * grid_size / 2) ** 2 and radius > (99 / 170 * grid_size / 2) ** 2:
+                        grid[x, y] = 3 * points[point]
+                    else:
+                        grid[x, y] = points[point]
+                    break
+    return grid
+
+
+@pytest.mark.parametrize("layout", [SQUARE, [1, 5, 2, 3, 4],
+                                    [1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20]])
+@pytest.mark.parametrize("gs", [60, 100, 200])
+def test_matches_reference_implementation(gs, layout):
+    assert np.array_equal(create_points(gs, layout), _reference_create_points(gs, layout))

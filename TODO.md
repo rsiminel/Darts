@@ -12,8 +12,8 @@ within each section by value-for-effort.
       notably the cardinal axes — are scored instead of left as 0 holes (`Darts.py`).
 
 ## Performance
-- [ ] Vectorize `create_points` with NumPy meshgrids to drop the pure-Python double
-      loop over `grid_size²` — enables much higher resolution.
+- [x] Vectorize `create_points` with NumPy meshgrids — dropped the pure-Python double
+      loop over `grid_size²` (~10-50x faster; 500x500 in ~27 ms).
 - [ ] Vectorize / cache the `O(worst_aim²)` anisotropic sweep.
 
 ## Features

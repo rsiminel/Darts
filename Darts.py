@@ -11,44 +11,36 @@ STANDARD_LAYOUT = [1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 1
 
 
 def create_points(grid_size, points):
+    points = np.asarray(points)
     num_points = len(points)
-    grid = np.zeros([grid_size] * 2)
+    half = grid_size / 2
     dividers = np.pi * (2*np.arange(num_points + 1)/num_points - 1)
-    for x in range(grid_size):
-        for y in range(grid_size):
-            radius = (x - grid_size/2)**2 + (y - grid_size/2)**2
-            # Missed the board
-            if radius > (grid_size/2)**2:
-                grid[x, y] = 0
-                continue
-            # Inner (small) Bullseye
-            elif radius < (12.7/340 * grid_size/2)**2:
-                grid[x, y] = 50
-                continue
-            # Outer Bullseye
-            elif radius < (32/340 * grid_size/2)**2:
-                grid[x, y] = 25
-                continue
-            # Segments. arctan2 handles the vertical axis (x == grid_size/2)
-            # correctly, returning +/- pi/2, so no special case is needed.
-            else:
-                angle = np.arctan2((y - grid_size/2), (x - grid_size/2))
-            # arctan2 returns pi for the negative-x axis; wrap it to -pi so it
-            # falls into the first wedge instead of past the last divider.
-            if angle == np.pi:
-                angle = -np.pi
-            for point in range(num_points):
-                # Lower bound inclusive so a pixel exactly on a divider (e.g. the
-                # cardinal axes) is still scored rather than left as a 0 hole.
-                if (angle >= dividers[point] and angle < dividers[point + 1]):
-                    if radius > (162/170 * grid_size/2)**2:
-                        grid[x, y] = 2*points[point]
-                    elif radius < (107/170 * grid_size/2)**2 and radius > (99/170 * grid_size/2)**2:
-                        grid[x, y] = 3*points[point]
-                    else:
-                        grid[x, y] = points[point]
-                    break
-    return grid
+
+    # radius[x, y] is the squared distance from the board centre; angle is the
+    # polar angle. indexing='ij' keeps the [x, y] orientation of the old loop.
+    x, y = np.meshgrid(np.arange(grid_size), np.arange(grid_size), indexing='ij')
+    radius = (x - half)**2 + (y - half)**2
+    angle = np.arctan2(y - half, x - half)
+    # arctan2 returns pi on the negative-x axis; wrap to -pi so it lands in the
+    # first wedge rather than past the last divider.
+    angle = np.where(angle == np.pi, -np.pi, angle)
+
+    # Wedge index per pixel: the p with dividers[p] <= angle < dividers[p+1].
+    # searchsorted(side='right') counts dividers <= angle; minus one gives p.
+    seg_idx = np.clip(np.searchsorted(dividers, angle, side='right') - 1, 0, num_points - 1)
+    seg_value = points[seg_idx]
+
+    # Ring multipliers (matched precedence: double, then triple, else single).
+    in_double = radius > (162/170 * half)**2
+    in_triple = (radius < (107/170 * half)**2) & (radius > (99/170 * half)**2)
+    grid = np.where(in_double, 2*seg_value, np.where(in_triple, 3*seg_value, seg_value))
+
+    # Overlay centre regions and misses, lowest precedence first so the loop's
+    # if/elif order (miss > inner bull > outer bull > segment) is reproduced.
+    grid = np.where(radius < (32/340 * half)**2, 25.0, grid)   # outer bull
+    grid = np.where(radius < (12.7/340 * half)**2, 50.0, grid)  # inner bull
+    grid = np.where(radius > half**2, 0.0, grid)                # missed the board
+    return grid.astype(float)
 
 
 #%%
