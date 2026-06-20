@@ -9,8 +9,8 @@ within each section by value-for-effort.
       (`Darts.py:42`); only one wedge can match, so the rest are wasted iterations.
 - [ ] Remove the redundant `x == grid_size/2` special case (`Darts.py:29-31`);
       `np.arctan2(y, 0)` already returns ±π/2.
-- [ ] Include wedge-divider boundaries (`>=` instead of `>`, `Darts.py:35`) so pixels
-      landing exactly on a divider aren't scored 0.
+- [x] Include wedge-divider boundaries (`>=` lower bound) so pixels on a divider —
+      notably the cardinal axes — are scored instead of left as 0 holes (`Darts.py`).
 
 ## Performance
 - [ ] Vectorize `create_points` with NumPy meshgrids to drop the pure-Python double

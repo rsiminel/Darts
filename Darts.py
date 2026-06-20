@@ -35,8 +35,14 @@ def create_points(grid_size, points):
                     else: angle = - np.pi/2
             else:
                 angle = np.arctan2((y - grid_size/2), (x - grid_size/2))
+            # arctan2 returns pi for the negative-x axis; wrap it to -pi so it
+            # falls into the first wedge instead of past the last divider.
+            if angle == np.pi:
+                angle = -np.pi
             for point in range(num_points):
-                if (angle > dividers[point] and angle < dividers[point + 1]):
+                # Lower bound inclusive so a pixel exactly on a divider (e.g. the
+                # cardinal axes) is still scored rather than left as a 0 hole.
+                if (angle >= dividers[point] and angle < dividers[point + 1]):
                     if radius > (162/170 * grid_size/2)**2:
                         grid[x, y] = 2*points[point]
                     elif radius < (107/170 * grid_size/2)**2 and radius > (99/170 * grid_size/2)**2:

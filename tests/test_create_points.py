@@ -119,13 +119,34 @@ def test_wedges_select_the_right_segment_value(square_grid):
     assert square_grid[130, 70] == SQUARE[1]   # -pi/4
 
 
-# --- known boundary bug ------------------------------------------------------
+# --- wedge dividers / cardinal axes ------------------------------------------
+# A pixel whose angle equals a divider must still be scored (not left at 0).
+# Convention: the boundary belongs to the wedge it is the *lower* bound of.
+# For SQUARE=[1,2,3,4] the cardinal axes coincide with dividers:
+#   +x  angle  0     -> wedge 2 -> SQUARE[2] = 3
+#   +y  angle  pi/2  -> wedge 3 -> SQUARE[3] = 4
+#   -x  angle  pi    -> wedge 0 -> SQUARE[0] = 1   (pi wraps to -pi)
+#   -y  angle -pi/2  -> wedge 1 -> SQUARE[1] = 2
+@pytest.mark.parametrize(
+    "pixel,expected,axis",
+    [
+        ((150, 100), 3, "+x"),
+        ((100, 150), 4, "+y"),
+        ((50, 100), 1, "-x"),
+        ((100, 50), 2, "-y"),
+    ],
+)
+def test_pixels_on_cardinal_axes_are_scored(square_grid, pixel, expected, axis):
+    x, y = pixel
+    assert square_grid[x, y] == expected, f"{axis} axis pixel {pixel}"
 
-def test_pixel_exactly_on_a_wedge_divider_scores_zero(square_grid):
-    # On the +x axis arctan2(0, +) == 0.0, which equals a divider. The strict
-    # `>`/`<` comparison (Darts.py:35) matches no wedge, so an on-board pixel
-    # scores 0. Documents the boundary bug tracked in TODO.md.
-    assert square_grid[150, 100] == 0
+
+def test_no_on_board_pixel_is_an_unscored_hole(square_grid):
+    # Every pixel inside the board radius must have a non-zero score; any 0 there
+    # would be a divider/axis hole like the one this fix removes.
+    yy, xx = np.mgrid[0:GRID, 0:GRID]
+    on_board = ((xx - 100) ** 2 + (yy - 100) ** 2) < 100 ** 2
+    assert (square_grid[on_board] > 0).all()
 
 
 # --- sanity against the real board -------------------------------------------
