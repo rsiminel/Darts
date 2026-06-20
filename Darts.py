@@ -21,13 +21,13 @@ def create_points(grid_size, points):
             if radius > (grid_size/2)**2:
                 grid[x, y] = 0
                 continue
-            # Small Bullseye
+            # Inner (small) Bullseye
             elif radius < (12.7/340 * grid_size/2)**2:
-                grid[x, y] = 25
+                grid[x, y] = 50
                 continue
             # Outer Bullseye
             elif radius < (32/340 * grid_size/2)**2:
-                grid[x, y] = 50
+                grid[x, y] = 25
                 continue
             # Segments
             elif x == grid_size/2:

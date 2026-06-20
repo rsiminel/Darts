@@ -61,24 +61,18 @@ def test_is_deterministic():
 
 # --- bullseyes ---------------------------------------------------------------
 
-def test_center_is_a_bullseye(square_grid):
-    # radius 0 -> small bull. (Value asserted by current behavior; see inversion
-    # test below for the known-bug note.)
-    assert square_grid[100, 100] == 25
+def test_center_is_the_inner_bull(square_grid):
+    # radius 0 -> inner (small) bull, worth 50 in real darts.
+    assert square_grid[100, 100] == 50
 
 
 def test_just_outside_small_bull_is_outer_bull(square_grid):
-    # (105,100): radius = 25 -> between the two bull thresholds.
-    assert square_grid[105, 100] == 50
+    # (105,100): radius = 25 -> outer bull, worth 25 in real darts.
+    assert square_grid[105, 100] == 25
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="Bullseye scores are inverted (inner=25, outer=50); see TODO.md / Darts.py:21-27. "
-    "When fixed, this should pass and the two bull tests above need updating.",
-)
-def test_inner_bull_should_outscore_outer_bull(square_grid):
-    # Real darts: inner bull (50) > outer bull (25). Fails today -> xfail.
+def test_inner_bull_outscores_outer_bull(square_grid):
+    # Real darts: inner bull (50) > outer bull (25).
     assert square_grid[100, 100] > square_grid[105, 100]
 
 
@@ -140,4 +134,4 @@ def test_standard_layout_max_score_is_triple_twenty():
     grid = create_points(GRID, [1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5, 20])
     # Highest possible: triple 20 = 60. Bull values (25, 50) are lower.
     assert grid.max() == 60
-    assert grid[100, 100] == 25  # center still a bull
+    assert grid[100, 100] == 50  # center is the inner bull

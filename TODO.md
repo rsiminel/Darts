@@ -4,8 +4,7 @@ Tracked avenues of improvement for the dartboard aim optimizer. Roughly ordered
 within each section by value-for-effort.
 
 ## Correctness & fidelity
-- [ ] Fix inverted bullseye scores: the small (inner) bull should be 50 and the
-      outer bull 25 — currently reversed (`Darts.py:21-27`). Or document as intentional.
+- [x] Fix inverted bullseye scores: inner bull now 50, outer bull 25 (`Darts.py:24-31`).
 - [ ] Use `break` instead of `continue` in the wedge loop once a segment matches
       (`Darts.py:42`); only one wedge can match, so the rest are wasted iterations.
 - [ ] Remove the redundant `x == grid_size/2` special case (`Darts.py:29-31`);
