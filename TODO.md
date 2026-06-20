@@ -19,11 +19,11 @@ within each section by value-for-effort.
 ## Features
 - [ ] Expected-score-vs-`sigma` plot comparing fixed targets (triple-20, bull, optimal)
       — makes the "don't aim at the triple-20" result explicit.
-- [ ] Support correlated/rotated scatter (full 2D covariance, not just axis-aligned
-      `sigmaX`/`sigmaY`).
+- [x] Support correlated/rotated scatter (full 2D covariance) via `expected_score`
+      with a `theta_deg` rotation, plus a `demo_correlated` visualization.
 - [ ] Animate the optimal aim point migrating as `sigma` increases (export a GIF).
-- [ ] Parameterize via CLI args / config instead of editing source; option to save
-      figures to disk.
+- [x] Parameterize via CLI args (`--demo/--layout/--grid-size/--worst-aim/--save-dir/
+      --no-show`); `--save-dir` writes figures to disk.
 
 ## Project hygiene
 - [x] Add a docstring to `create_points`.

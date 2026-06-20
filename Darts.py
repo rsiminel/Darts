@@ -1,7 +1,9 @@
 #%%
-from scipy.ndimage import gaussian_filter
+from scipy.ndimage import gaussian_filter, rotate
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
+from pathlib import Path
 
 grid_size = 200
 worst_aim = 100
@@ -65,40 +67,145 @@ def create_points(grid_size, points):
 
 
 #%%
-def demo_isotropic(layout=STANDARD_LAYOUT):
+def expected_score(points, sigma_x, sigma_y=None, theta_deg=0.0):
+    """Expected score for aiming at each pixel, given a Gaussian aim spread.
+
+    Blurring the score map by the dart-scatter distribution gives the expected
+    score at every aim point. ``sigma_x``/``sigma_y`` are the spread along the
+    two axes (``sigma_y`` defaults to ``sigma_x`` for isotropic aim) and
+    ``theta_deg`` rotates that spread, modelling correlated/tilted scatter.
+    """
+    if sigma_y is None:
+        sigma_y = sigma_x
+    if sigma_x == 0 and sigma_y == 0:
+        return points.astype(float)
+    if theta_deg % 360 == 0:
+        return gaussian_filter(points, sigma=[sigma_x, sigma_y], mode='constant', cval=0)
+    # Rotate into the spread's frame, blur along its axes, rotate back. Reuses
+    # the efficient separable filter for any orientation.
+    rot = rotate(points, -theta_deg, reshape=False, mode='constant', cval=0, order=1)
+    blurred = gaussian_filter(rot, sigma=[sigma_x, sigma_y], mode='constant', cval=0)
+    return rotate(blurred, theta_deg, reshape=False, mode='constant', cval=0, order=1)
+
+
+def optimal_aim(score):
+    """Return the (x, y) of the highest-scoring aim point (first, in row order)."""
+    coord = np.argwhere(score == np.amax(score))[0]
+    return int(coord[0]), int(coord[1])
+
+
+#%%
+def demo_isotropic(layout=STANDARD_LAYOUT, grid_size=grid_size, worst_aim=worst_aim,
+                   save_path=None, show=True):
     """Sweep a single (isotropic) aim spread; plot the optimal aim point per skill level."""
     points = create_points(grid_size, layout)
     best_shot = np.zeros([grid_size] * 2)
     for sigma in range(worst_aim):
-        score = gaussian_filter(points, sigma=sigma, mode='constant', cval=0)
-        for coord in np.argwhere(score == np.amax(score)):
-            best_shot[coord[0], coord[1]] = sigma
-    plt.imshow(points, cmap="gray")
-    plt.imshow(best_shot, cmap="Wistia", alpha=1.0*(best_shot > 0))
-    plt.show()
+        score = expected_score(points, sigma)
+        x, y = optimal_aim(score)
+        best_shot[x, y] = sigma
+    fig, ax = plt.subplots()
+    ax.imshow(points, cmap="gray")
+    ax.imshow(best_shot, cmap="Wistia", alpha=1.0 * (best_shot > 0))
+    ax.set_title("Optimal aim point vs. isotropic aim spread")
+    _finish(fig, save_path, show)
     return best_shot
 
 
 #%%
-def demo_anisotropic(layout=STANDARD_LAYOUT):
+def demo_anisotropic(layout=STANDARD_LAYOUT, grid_size=grid_size, worst_aim=worst_aim,
+                     save_path=None, show=True):
     """Sweep independent horizontal/vertical aim spreads; plot optimal aim points (RGB-encoded)."""
     points = create_points(grid_size, layout)
     best_shot = np.zeros([grid_size, grid_size, 4])
     for sigmaX in range(worst_aim):
         for sigmaY in range(worst_aim):
-            score = gaussian_filter(points, sigma=[sigmaX, sigmaY], mode='constant', cval=0)
-            for coord in np.argwhere(score == np.amax(score)):
-                best_shot[coord[0], coord[1], 0] = sigmaX / worst_aim
-                best_shot[coord[0], coord[1], 1] = sigmaY / worst_aim
-                best_shot[coord[0], coord[1], 2] = 1.0 - (sigmaX + sigmaY) / worst_aim
-                best_shot[coord[0], coord[1], 3] = 1.0
-    plt.imshow(points, cmap="gray")
-    plt.imshow(best_shot)
-    plt.show()
+            score = expected_score(points, sigmaX, sigmaY)
+            x, y = optimal_aim(score)
+            best_shot[x, y, 0] = sigmaX / worst_aim
+            best_shot[x, y, 1] = sigmaY / worst_aim
+            best_shot[x, y, 2] = 1.0 - (sigmaX + sigmaY) / worst_aim
+            best_shot[x, y, 3] = 1.0
+    fig, ax = plt.subplots()
+    ax.imshow(points, cmap="gray")
+    ax.imshow(np.clip(best_shot, 0, 1))  # blue channel can go negative; clip for imshow
+    ax.set_title("Optimal aim point vs. anisotropic aim spread (RGB = sigmaX, sigmaY)")
+    _finish(fig, save_path, show)
     return best_shot
 
 
 #%%
+def demo_correlated(layout=STANDARD_LAYOUT, grid_size=grid_size,
+                    sigma_major=18.0, sigma_minor=6.0, theta_deg=30.0,
+                    save_path=None, show=True):
+    """Plot the expected-score field for a correlated (tilted, elongated) aim spread.
+
+    Marks the optimal aim point for a scatter ellipse with the given major/minor
+    spread rotated by ``theta_deg``.
+    """
+    points = create_points(grid_size, layout)
+    score = expected_score(points, sigma_major, sigma_minor, theta_deg)
+    x, y = optimal_aim(score)
+    fig, ax = plt.subplots()
+    im = ax.imshow(score, cmap="inferno")
+    ax.plot(y, x, "c+", markersize=14, markeredgewidth=2)
+    ax.set_title(f"Expected score (sigma={sigma_major}/{sigma_minor}, theta={theta_deg} deg)\n"
+                 f"optimal aim x={x}, y={y}")
+    fig.colorbar(im, ax=ax, label="expected score")
+    _finish(fig, save_path, show)
+    return score
+
+
+def _finish(fig, save_path, show):
+    """Save and/or show a figure, then release it."""
+    if save_path is not None:
+        fig.savefig(save_path, bbox_inches="tight", dpi=120)
+        print(f"wrote {save_path}")
+    if show:
+        plt.show()
+    plt.close(fig)
+
+
+#%%
+def _resolve_layout(spec):
+    if spec == "standard":
+        return STANDARD_LAYOUT
+    return [int(v) for v in spec.split(",")]
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Find where to aim on a dartboard given how bad your aim is.")
+    parser.add_argument("--demo", choices=["isotropic", "anisotropic", "correlated", "all"],
+                        default="all", help="which visualization(s) to run")
+    parser.add_argument("--layout", default="standard",
+                        help="'standard' or a comma-separated list of segment values")
+    parser.add_argument("--grid-size", type=int, default=grid_size)
+    parser.add_argument("--worst-aim", type=int, default=worst_aim,
+                        help="largest aim spread (sigma) to sweep")
+    parser.add_argument("--save-dir", type=Path, default=None,
+                        help="write PNGs to this directory instead of only showing them")
+    parser.add_argument("--no-show", action="store_true",
+                        help="don't open interactive windows (useful with --save-dir)")
+    args = parser.parse_args(argv)
+
+    layout = _resolve_layout(args.layout)
+    show = not args.no_show
+    save_dir = args.save_dir
+    if save_dir is not None:
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+    def path_for(name):
+        return None if save_dir is None else save_dir / f"{name}.png"
+
+    if args.demo in ("isotropic", "all"):
+        demo_isotropic(layout, args.grid_size, args.worst_aim, path_for("isotropic"), show)
+    if args.demo in ("anisotropic", "all"):
+        demo_anisotropic(layout, args.grid_size, args.worst_aim, path_for("anisotropic"), show)
+    if args.demo in ("correlated", "all"):
+        demo_correlated(layout, args.grid_size, save_path=path_for("correlated"), show=show)
+
+
+#%%
 if __name__ == "__main__":
-    demo_isotropic()
-    demo_anisotropic()
+    main()

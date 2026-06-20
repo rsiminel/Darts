@@ -37,17 +37,28 @@ window or as a plain script.
 - **Cell 2 (anisotropic aim)** — sweeps independent horizontal and vertical spreads
   (`sigmaX`, `sigmaY`) for players who scatter more in one direction than the other, and
   encodes the two spreads into RGB.
+- **Correlated aim** — `demo_correlated` plots the expected-score field for a *tilted,
+  elongated* scatter ellipse (a full 2D covariance via `expected_score(..., theta_deg=...)`)
+  and marks the optimal aim point.
 
 ## Running it
 
 ```bash
 pip install numpy scipy matplotlib
-python Darts.py
+python Darts.py                 # run all demos with defaults
 ```
 
-Running the file executes both demos (`demo_isotropic` and `demo_anisotropic`); you
-can also import `create_points` and the demo functions from other code or a notebook
-without triggering the plots.
+### Command-line options
+
+```bash
+python Darts.py --demo correlated            # isotropic | anisotropic | correlated | all
+python Darts.py --layout 20,1,18,4,13        # custom segment order (or 'standard')
+python Darts.py --grid-size 300 --worst-aim 120
+python Darts.py --save-dir out --no-show     # write out/{isotropic,anisotropic,correlated}.png
+```
+
+You can also import the pieces (`create_points`, `expected_score`, `optimal_aim`, and the
+`demo_*` functions) from other code or a notebook without triggering any plots.
 
 ## Tests
 
