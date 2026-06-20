@@ -29,10 +29,8 @@ def create_points(grid_size, points):
             elif radius < (32/340 * grid_size/2)**2:
                 grid[x, y] = 25
                 continue
-            # Segments
-            elif x == grid_size/2:
-                    if y > grid_size/2: angle = np.pi/2
-                    else: angle = - np.pi/2
+            # Segments. arctan2 handles the vertical axis (x == grid_size/2)
+            # correctly, returning +/- pi/2, so no special case is needed.
             else:
                 angle = np.arctan2((y - grid_size/2), (x - grid_size/2))
             # arctan2 returns pi for the negative-x axis; wrap it to -pi so it
@@ -49,7 +47,7 @@ def create_points(grid_size, points):
                         grid[x, y] = 3*points[point]
                     else:
                         grid[x, y] = points[point]
-                    continue
+                    break
     return grid
 
 

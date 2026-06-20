@@ -5,10 +5,9 @@ within each section by value-for-effort.
 
 ## Correctness & fidelity
 - [x] Fix inverted bullseye scores: inner bull now 50, outer bull 25 (`Darts.py:24-31`).
-- [ ] Use `break` instead of `continue` in the wedge loop once a segment matches
-      (`Darts.py:42`); only one wedge can match, so the rest are wasted iterations.
-- [ ] Remove the redundant `x == grid_size/2` special case (`Darts.py:29-31`);
-      `np.arctan2(y, 0)` already returns ±π/2.
+- [x] Use `break` instead of `continue` in the wedge loop once a segment matches.
+- [x] Remove the redundant `x == grid_size/2` special case; `np.arctan2(y, 0)`
+      already returns ±π/2.
 - [x] Include wedge-divider boundaries (`>=` lower bound) so pixels on a divider —
       notably the cardinal axes — are scored instead of left as 0 holes (`Darts.py`).
 
